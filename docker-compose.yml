@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  app:
+      build: .
+      command: bash -c "uvicorn core.main:app --host 0.0.0.0 --port 8000 --reload"
+      environment:
+        - DATABASE_URL=postgresql://root:root@crawler_db:5432/crawlerdb
+        - SECRET_KEY=123abc
+        - TOR_PROXY=http://tor-privoxy:8118/
+      volumes:
+        - .:/core
+      ports:
+        - 8000:8000
+      depends_on:
+        - crawler_db
+      networks:
+        - backend
+
+  crawler_db:
+    image: postgres:12.0-alpine
+    restart: always
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=crawlerdb
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data/
+    networks:
+      - backend
+
+  tor-privoxy:
+    restart: always
+    image: dockage/tor-privoxy:latest
+    ports:
+      - "9050:9050" # Tor proxy
+      - "9051:9051" # Tor control port
+      - "8118:8118" # Privoxy
+    networks:
+      - backend
+
+networks:
+  backend:
