@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from core.config import settings
+from core.settings import settings
 from core import models, routes
 from .database import engine
 
@@ -12,7 +12,7 @@ Tor Crawler Description
 
 
 app = FastAPI(
-    title="Dates facts - REST API",
+    title="Tor crawler - REST API",
     openapi_url="/openapi.json",
     secret_key=settings.APP_SECRET_KEY,
     description=description,

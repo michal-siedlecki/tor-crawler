@@ -15,8 +15,14 @@ def create_domain(db: Session, **domain_data):
     return new_domain
 
 
-def delete_domain(domain_id: uuid.UUID, db: Session):
-    domain = db.query(models.Domain).filter(models.Domain.id == domain_id).first()
+def update_domain(db: Session, domain: models.Domain):
+    db.add(domain)
+    db.commit()
+    return domain
+
+
+def delete_domain(domain_url: str, db: Session):
+    domain = db.query(models.Domain).filter(models.Domain.url == domain_url).first()
     if not domain:
         return False
     db.delete(domain)
