@@ -13,8 +13,23 @@ def extract_unique_domains(response_content: str) -> set[str]:
     links_raw = [str(element) for element in link_elements]
     domains = []
     for link in links_raw:
-        parse_result = urlparse(link)
-        if parse_result.netloc and parse_result.netloc not in domains:
-            domain = urlunparse([parse_result.scheme, parse_result.netloc] + [""] * 4)
+        domain = clean_url(link)
+        if domain:
             domains.append(domain)
     return set(domains)
+
+
+def clean_url(url: str) -> str:
+    parse_result = urlparse(url)
+    if parse_result.netloc:
+        domain = urlunparse([parse_result.scheme, parse_result.netloc] + [""] * 4)
+        return domain
+    return ""
+
+
+def is_bad_domain(response_content: str) -> bool:
+    """
+    must recognize if its onion domain
+
+    """
+    return True
