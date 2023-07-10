@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 
-from core import models, logger
+from core import models
 
 
 def get_domains(db: Session) -> list:

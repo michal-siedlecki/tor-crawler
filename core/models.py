@@ -10,6 +10,7 @@ class Domain(BaseModel):
     id: uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     url: str = Column(String, nullable=False)
     last_visited: int = Column(Integer, nullable=True, default=None)
+    last_response: int = Column(Integer, nullable=True, default=None)
     is_thread: bool = Column(Boolean, nullable=True, default=None)
 
     def __eq__(self, other):

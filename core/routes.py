@@ -53,7 +53,7 @@ def post_domain(
     requested_domain = models.Domain(url=url)
     existing_domains = get_domains(db)
     if requested_domain in existing_domains:
-        return None
+        return requested_domain
     new_domain = crud.create_domain(db, url=url)
     return new_domain
 
@@ -63,17 +63,18 @@ def crawl(url: str, db: Session = Depends(get_db)) -> Optional[Iterable[str]]:
     """
     Run crawler for requested domain
     """
-    new_domain = post_domain(url=url, db=db)
-    # If post request return None means that the domain exists in db and no need to visit
-    if not new_domain:
+    requested_domain = post_domain(url=url, db=db)
+    if requested_domain.last_visited:
         return None
-    response_content = crawler.get(new_domain.url)
-    child_domains = parser.extract_unique_domains(response_content)
-    if parser.is_bad_domain(response_content):
-        new_domain.is_thread = True
-    new_domain.last_visited = int(time.time())
-    domain = crud.get_domain(db, new_domain.url)
+    crawler_spider = crawler.Crawler(url=url)
+    response_content = crawler_spider.get_page()
+    requested_domain.last_visited = int(time.time())
+    domain = crud.get_domain(db, requested_domain.url)
     crud.update_domain(db, domain=domain)
+    if not response_content:
+        return None
+    requested_domain.is_thread = parser.is_bad_domain(response_content)
+    child_domains = parser.extract_unique_domains(response_content)
     for d in child_domains:
         post_domain(d, db)
     return None
