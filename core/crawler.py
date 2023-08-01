@@ -3,7 +3,7 @@ import random
 import requests
 from typing import Optional
 
-from core import logger, crud
+from core import logger
 from core.settings import settings
 
 
@@ -40,13 +40,8 @@ class Crawler:
         Try to get real page content
         """
         response = self._get()
+        self._sleep()
         while self.retries and response.status_code not in self.accepted_response_codes:
             response = self._get()
             self.retries -= 1
         return response.content.decode("utf-8")
-
-    def run(self) -> None:
-        """
-        Crawl over provided website
-        """
-        pass

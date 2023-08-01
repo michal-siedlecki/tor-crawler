@@ -31,7 +31,7 @@ def get_db():
 )
 def get_domains(db: Session = Depends(get_db)) -> Iterable[schemas.DomainSchema]:
     """
-    Fetches list of domains from database
+    Fetch list of domains from database
     """
     domains = crud.get_domains(db)
     return domains
@@ -43,21 +43,16 @@ def get_domains(db: Session = Depends(get_db)) -> Iterable[schemas.DomainSchema]
 )
 def schedule_url(url: str) -> None:
     """
-    Create async celery task
+    Create async celery task for scraping
     """
     crawl_from_url.delay(url)
 
 
-@router.post(
-    "/domains",
-    status_code=status.HTTP_201_CREATED,
-    response_model=Optional[schemas.DomainSchema],
-)
 def post_domain(
     url: str, db: Session = Depends(get_db)
 ) -> Optional[schemas.DomainSchema]:
     """
-    Creates domain entry in database
+    Creates domain entry in database if not exists
     """
     if not router.crawl:
         return None
@@ -70,11 +65,21 @@ def post_domain(
     return new_domain
 
 
+@router.get("/stop", status_code=status.HTTP_200_OK)
+def stop():
+    router.crawl = False
+
+
 @router.post("/crawl", status_code=status.HTTP_200_OK)
 def crawl(url: str, db: Session = Depends(get_db)) -> Optional[Iterable[str]]:
     """
     Run crawler for requested domain
     """
+
+    if not router.crawl:
+        logger.logger.info("The crawler has been stopped")
+        return None
+    logger.logger.info(f"The crawler will visit {url}")
     requested_domain = post_domain(url=url, db=db)
     if requested_domain.last_visited:
         return None
@@ -85,10 +90,15 @@ def crawl(url: str, db: Session = Depends(get_db)) -> Optional[Iterable[str]]:
     crud.update_domain(db, domain=domain)
     if not response_content:
         return None
+
     requested_domain.is_thread = parser.is_bad_domain(response_content)
     child_domains = parser.extract_unique_domains(response_content)
+    logger.logger.info(f"Found {len(child_domains)} child domains")
+    if not child_domains:
+        return None
+    logger.logger.info(f"Will schedule now")
     for d in child_domains:
-        post_domain(d, db)
+        schedule_url(d)
     return None
 
 
