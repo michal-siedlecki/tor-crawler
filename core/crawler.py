@@ -49,3 +49,4 @@ class Crawler:
         """
         Crawl over provided website
         """
+        pass

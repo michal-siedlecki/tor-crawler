@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends
 from starlette import status
 from sqlalchemy.orm import Session
 
-from core import crud, database, schemas, models, crawler, parser
+from core import crud, database, schemas, models, crawler, parser, logger
+from core.tasks import crawl_from_url
 
 
 class Router(APIRouter):
@@ -34,6 +35,17 @@ def get_domains(db: Session = Depends(get_db)) -> Iterable[schemas.DomainSchema]
     """
     domains = crud.get_domains(db)
     return domains
+
+
+@router.post(
+    "/scheduler",
+    status_code=status.HTTP_200_OK,
+)
+def schedule_url(url: str) -> None:
+    """
+    Create async celery task
+    """
+    crawl_from_url.delay(url)
 
 
 @router.post(

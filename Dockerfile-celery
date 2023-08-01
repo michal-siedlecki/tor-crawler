@@ -1,0 +1,7 @@
+FROM python:3.10
+WORKDIR /core
+ENV PYTHONUNBUFFERED=1
+COPY . /core
+RUN pip install celery
+RUN pip install redis
+RUN pip install requests

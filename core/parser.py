@@ -29,7 +29,7 @@ def clean_url(url: str) -> str:
 
 def is_bad_domain(response_content: str) -> bool:
     """
-    must recognize if its onion domain
+    Recognize is domain is hacker, darkweb etc
 
     """
     return True

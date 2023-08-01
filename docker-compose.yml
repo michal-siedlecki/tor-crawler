@@ -3,6 +3,7 @@ version: "3.8"
 services:
   app:
       build: .
+      container_name: crawler_app
       command: bash -c "uvicorn core.main:app --host 0.0.0.0 --port 8000 --reload"
       environment:
         - DATABASE_URL=postgresql://root:root@crawler_db:5432/crawlerdb
@@ -19,6 +20,7 @@ services:
 
   crawler_db:
     image: postgres:12.0-alpine
+    container_name: crawler_db
     restart: always
     expose:
       - "5432"
@@ -34,10 +36,29 @@ services:
   tor-privoxy:
     restart: always
     image: dockage/tor-privoxy:latest
+    container_name: tor_proxy
     ports:
       - "9050:9050" # Tor proxy
       - "9051:9051" # Tor control port
       - "8118:8118" # Privoxy
+    networks:
+      - backend
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+  worker:
+    build:
+      dockerfile: Dockerfile-celery
+    container_name: celery_worker
+    command: [ 'celery', '-A', 'core.tasks', 'worker', '--loglevel=INFO' ]
+    depends_on:
+      - redis
+    volumes:
+      - .:/core
     networks:
       - backend
 
