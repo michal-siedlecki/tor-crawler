@@ -20,6 +20,9 @@ def extract_unique_domains(response_content: str) -> set[str]:
 
 
 def clean_url(url: str) -> str:
+    """
+    Extract the domain from url
+    """
     parse_result = urlparse(url)
     if parse_result.netloc:
         domain = urlunparse([parse_result.scheme, parse_result.netloc] + [""] * 4)

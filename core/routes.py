@@ -24,6 +24,21 @@ def get_db():
         db.close()
 
 
+def post_domain(
+    url: str, db: Session = Depends(get_db)
+) -> Optional[schemas.DomainSchema]:
+    """
+    Creates domain entry in database if not exists
+    """
+    url = parser.clean_url(url)
+    requested_domain = models.Domain(url=url)
+    existing_domains = get_domains(db)
+    if requested_domain in existing_domains:
+        return requested_domain
+    new_domain = crud.create_domain(db, url=url)
+    return new_domain
+
+
 @router.get(
     "/domains",
     response_model=List[schemas.DomainSchema],
@@ -38,7 +53,7 @@ def get_domains(db: Session = Depends(get_db)) -> Iterable[schemas.DomainSchema]
 
 
 @router.post(
-    "/scheduler",
+    "/schedule",
     status_code=status.HTTP_200_OK,
 )
 def schedule_url(url: str) -> None:
@@ -48,32 +63,18 @@ def schedule_url(url: str) -> None:
     crawl_from_url.delay(url)
 
 
-def post_domain(
-    url: str, db: Session = Depends(get_db)
-) -> Optional[schemas.DomainSchema]:
-    """
-    Creates domain entry in database if not exists
-    """
-    if not router.crawl:
-        return None
-    url = parser.clean_url(url)
-    requested_domain = models.Domain(url=url)
-    existing_domains = get_domains(db)
-    if requested_domain in existing_domains:
-        return requested_domain
-    new_domain = crud.create_domain(db, url=url)
-    return new_domain
-
-
 @router.get("/stop", status_code=status.HTTP_200_OK)
-def stop():
+def stop() -> None:
+    """
+    Break the main crawler loop
+    """
     router.crawl = False
 
 
 @router.post("/crawl", status_code=status.HTTP_200_OK)
 def crawl(url: str, db: Session = Depends(get_db)) -> Optional[Iterable[str]]:
     """
-    Run crawler for requested domain
+    Main loop of the program. Run crawler for requested domain and schedule crawl the child domains
     """
 
     if not router.crawl:
@@ -90,7 +91,6 @@ def crawl(url: str, db: Session = Depends(get_db)) -> Optional[Iterable[str]]:
     crud.update_domain(db, domain=domain)
     if not response_content:
         return None
-
     requested_domain.is_thread = parser.is_bad_domain(response_content)
     child_domains = parser.extract_unique_domains(response_content)
     logger.logger.info(f"Found {len(child_domains)} child domains")
